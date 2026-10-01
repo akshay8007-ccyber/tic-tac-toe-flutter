@@ -1,12 +1,12 @@
-// Board Widget displaying 3x3 grid with selected cell highlighting
 import 'package:flutter/material.dart';
 
 import '../models/cell.dart';
 import '../models/game_mode.dart';
 import 'cell_widget.dart';
+import 'winning_line_painter.dart';
 
-/// Renders the 3x3 grid with support for selected tile highlighting, winning lines,
-/// and symbol themes.
+/// Renders the 3x3 grid with selected tile highlights, symbol themes,
+/// and animated winning line overlays.
 class BoardWidget extends StatelessWidget {
   final List<CellData> cells;
   final List<int>? winningLine;
@@ -26,48 +26,69 @@ class BoardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return AspectRatio(
       aspectRatio: 1,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Theme.of(context).colorScheme.surfaceContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
+      child: Stack(
+        children: [
+          // Main Board Grid Container
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? colorScheme.surfaceContainer
+                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
             ),
-          ],
-        ),
-        child: GridView.builder(
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: cells.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemBuilder: (context, index) {
-            final isWinningCell = winningLine?.contains(index) ?? false;
-            final isSelected = selectedCellIndex == index;
+            child: GridView.builder(
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: cells.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+              ),
+              itemBuilder: (context, index) {
+                final isWinningCell = winningLine?.contains(index) ?? false;
+                final isSelected = selectedCellIndex == index;
 
-            return CellWidget(
-              cell: cells[index],
-              isWinningCell: isWinningCell,
-              isSelected: isSelected,
-              symbolTheme: symbolTheme,
-              onTap: () => onCellTap(index),
-            );
-          },
-        ),
+                return CellWidget(
+                  cell: cells[index],
+                  isWinningCell: isWinningCell,
+                  isSelected: isSelected,
+                  symbolTheme: symbolTheme,
+                  onTap: () => onCellTap(index),
+                );
+              },
+            ),
+          ),
+
+          // Winning Laser Line Overlay
+          if (winningLine != null && winningLine!.isNotEmpty)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: WinningLinePainterWidget(
+                    winningLine: winningLine!,
+                    lineColor: colorScheme.tertiary,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

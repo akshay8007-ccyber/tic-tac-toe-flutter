@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/game_mode.dart';
 import '../models/player.dart';
 
-/// Animated banner displayed when a game is won.
+/// Animated banner displayed when a game is won with trophy glow effects.
 class WinnerBanner extends StatelessWidget {
   final Player? winner;
   final SymbolTheme symbolTheme;
@@ -19,13 +19,17 @@ class WinnerBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
+      transitionBuilder: (child, animation) => ScaleTransition(
+        scale: CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+        child: FadeTransition(opacity: animation, child: child),
+      ),
       child: winner == null
           ? const SizedBox(height: 0, key: ValueKey('no_winner'))
           : Container(
               key: const ValueKey('winner'),
               margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -33,27 +37,40 @@ class WinnerBanner extends StatelessWidget {
                     Theme.of(context).colorScheme.tertiaryContainer,
                   ],
                 ),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.4),
+                ),
                 boxShadow: [
                   BoxShadow(
                     color: Theme.of(context)
                         .colorScheme
                         .primary
-                        .withValues(alpha: 0.18),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+                        .withValues(alpha: 0.25),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
-                    Icons.emoji_events_rounded,
-                    color: Colors.amber,
-                    size: 28,
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Colors.amber,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.emoji_events_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Text(
                     _getWinnerText(),
                     style: TextStyle(

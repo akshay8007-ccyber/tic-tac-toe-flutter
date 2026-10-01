@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'game/game_controller.dart';
 import 'screens/game_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/splash_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const TicTacToeApp());
 }
 
@@ -38,11 +41,13 @@ class _TicTacToeAppState extends State<TicTacToeApp> {
 
     final lightColorScheme = ColorScheme.fromSeed(
       seedColor: const Color(0xFF6750A4),
+      tertiary: const Color(0xFFE8873A),
       brightness: Brightness.light,
     );
 
     final darkColorScheme = ColorScheme.fromSeed(
       seedColor: const Color(0xFFD0BCFF),
+      tertiary: const Color(0xFFFFB77C),
       brightness: Brightness.dark,
     );
 
@@ -57,6 +62,7 @@ class _TicTacToeAppState extends State<TicTacToeApp> {
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
+          backgroundColor: Colors.transparent,
         ),
       ),
       darkTheme: ThemeData(
@@ -66,9 +72,15 @@ class _TicTacToeAppState extends State<TicTacToeApp> {
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
+          backgroundColor: Colors.transparent,
         ),
       ),
-      home: GameScreen(controller: _gameController),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => SplashScreen(controller: _gameController),
+        '/home': (context) => HomeScreen(controller: _gameController),
+        '/game': (context) => GameScreen(controller: _gameController),
+      },
     );
   }
 }

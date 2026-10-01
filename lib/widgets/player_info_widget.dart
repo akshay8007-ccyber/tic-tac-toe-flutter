@@ -31,26 +31,25 @@ class PlayerInfoWidget extends StatelessWidget {
     final accent = isX ? symbolTheme.xColor : symbolTheme.oColor;
     final symbol = isX ? symbolTheme.xSymbol : symbolTheme.oSymbol;
     final title = customTitle ?? 'Player ${player.label}';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: isActive
-            ? accent.withValues(alpha: 0.14)
-            : (Theme.of(context).brightness == Brightness.dark
-                ? colorScheme.surfaceContainer
-                : Colors.white),
-        borderRadius: BorderRadius.circular(20),
+            ? accent.withValues(alpha: 0.16)
+            : (isDark ? colorScheme.surfaceContainer : Colors.white),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(
           color: isActive ? accent : colorScheme.outlineVariant.withValues(alpha: 0.4),
-          width: isActive ? 2.2 : 1,
+          width: isActive ? 2.5 : 1,
         ),
         boxShadow: [
           if (isActive)
             BoxShadow(
-              color: accent.withValues(alpha: 0.2),
-              blurRadius: 10,
+              color: accent.withValues(alpha: 0.25),
+              blurRadius: 12,
               offset: const Offset(0, 4),
             ),
         ],
@@ -68,6 +67,12 @@ class PlayerInfoWidget extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: accent,
                   shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: accent.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                    ),
+                  ],
                 ),
                 child: Text(
                   symbolTheme.isEmoji ? symbol : player.label,
@@ -93,17 +98,24 @@ class PlayerInfoWidget extends StatelessWidget {
               ),
               if (isWinner) ...[
                 const SizedBox(width: 6),
-                Icon(Icons.emoji_events, color: accent, size: 18),
+                Icon(Icons.emoji_events_rounded, color: accent, size: 18),
               ],
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            'Marks: $count/$maxCount',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: accent,
-              fontSize: 13,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              'Marks: $count/$maxCount',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: accent,
+                fontSize: 12,
+              ),
             ),
           ),
         ],

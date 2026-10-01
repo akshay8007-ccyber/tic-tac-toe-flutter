@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/cell.dart';
 import '../models/game_mode.dart';
@@ -42,16 +43,21 @@ class GameController extends ChangeNotifier {
   List<int>? _winningLine;
   int _moveCounter = 0;
 
-  // Settings & Scores
+  // Settings & Options
   GameMode _gameMode = GameMode.pvp;
   AiDifficulty _aiDifficulty = AiDifficulty.hard;
   SymbolTheme _selectedSymbolTheme = SymbolTheme.themes.first;
   bool _isDarkMode = false;
   bool _isAiThinking = false;
+  bool _isHapticFeedbackEnabled = true;
 
+  // Scoreboard & Streaks
   int _xWins = 0;
   int _oWins = 0;
   int _draws = 0;
+  int _xStreak = 0;
+  int _oStreak = 0;
+  int _totalGamesPlayed = 0;
 
   final List<GameStateSnapshot> _history = [];
 
@@ -68,13 +74,29 @@ class GameController extends ChangeNotifier {
   AiDifficulty get aiDifficulty => _aiDifficulty;
   SymbolTheme get selectedSymbolTheme => _selectedSymbolTheme;
   bool get isDarkMode => _isDarkMode;
+  bool get isHapticFeedbackEnabled => _isHapticFeedbackEnabled;
 
   int get xWins => _xWins;
   int get oWins => _oWins;
   int get draws => _draws;
+  int get xStreak => _xStreak;
+  int get oStreak => _oStreak;
+  int get totalGamesPlayed => _totalGamesPlayed;
+
   bool get canUndo => _history.isNotEmpty && !isGameOver && !_isAiThinking;
 
   int marksCountFor(Player player) => _markPositions[player]!.length;
+
+  void triggerHaptic({bool heavy = false, bool selection = false}) {
+    if (!_isHapticFeedbackEnabled) return;
+    if (selection) {
+      HapticFeedback.selectionClick();
+    } else if (heavy) {
+      HapticFeedback.heavyImpact();
+    } else {
+      HapticFeedback.lightImpact();
+    }
+  }
 
   /// Handles taps on the board.
   /// - In Placement Phase (marks < 3): tapping empty cell drops a mark.
@@ -88,6 +110,7 @@ class GameController extends ChangeNotifier {
     if (playerMarks.length < GameLogic.maxMarksPerPlayer) {
       // --- Placement Phase ---
       if (_cells[index].isEmpty) {
+        triggerHaptic();
         _saveSnapshot();
         _executePlacement(index);
       }
@@ -95,6 +118,7 @@ class GameController extends ChangeNotifier {
       // --- Movement Phase ---
       if (_cells[index].player == _currentPlayer) {
         // Select or toggle selection of player's own mark
+        triggerHaptic(selection: true);
         if (_selectedCellIndex == index) {
           _selectedCellIndex = null; // deselect
         } else {
@@ -103,6 +127,7 @@ class GameController extends ChangeNotifier {
         notifyListeners();
       } else if (_cells[index].isEmpty && _selectedCellIndex != null) {
         // Move selected mark to empty tile
+        triggerHaptic();
         _saveSnapshot();
         _executeMove(_selectedCellIndex!, index);
       }
@@ -138,11 +163,18 @@ class GameController extends ChangeNotifier {
       _winner = result.winner;
       _winningLine = result.winningLine;
       _selectedCellIndex = null;
+      _totalGamesPlayed++;
+
+      triggerHaptic(heavy: true);
 
       if (_winner == Player.x) {
         _xWins++;
+        _xStreak++;
+        _oStreak = 0;
       } else if (_winner == Player.o) {
         _oWins++;
+        _oStreak++;
+        _xStreak = 0;
       }
     } else {
       _currentPlayer = _currentPlayer.opponent;
@@ -160,7 +192,7 @@ class GameController extends ChangeNotifier {
     _isAiThinking = true;
     notifyListeners();
 
-    Future.delayed(const Duration(milliseconds: 400), () {
+    Future.delayed(const Duration(milliseconds: 380), () {
       if (isGameOver) {
         _isAiThinking = false;
         notifyListeners();
@@ -193,6 +225,7 @@ class GameController extends ChangeNotifier {
   void undo() {
     if (_history.isEmpty || _isAiThinking) return;
 
+    triggerHaptic(selection: true);
     int stepsToUndo = (_gameMode == GameMode.vsAi && _history.length >= 2) ? 2 : 1;
 
     GameStateSnapshot? snapshot;
@@ -251,11 +284,19 @@ class GameController extends ChangeNotifier {
 
   void setSymbolTheme(SymbolTheme theme) {
     _selectedSymbolTheme = theme;
+    triggerHaptic(selection: true);
     notifyListeners();
   }
 
   void toggleDarkMode() {
     _isDarkMode = !_isDarkMode;
+    triggerHaptic(selection: true);
+    notifyListeners();
+  }
+
+  void toggleHaptics() {
+    _isHapticFeedbackEnabled = !_isHapticFeedbackEnabled;
+    triggerHaptic(selection: true);
     notifyListeners();
   }
 
@@ -263,10 +304,15 @@ class GameController extends ChangeNotifier {
     _xWins = 0;
     _oWins = 0;
     _draws = 0;
+    _xStreak = 0;
+    _oStreak = 0;
+    _totalGamesPlayed = 0;
+    triggerHaptic(selection: true);
     notifyListeners();
   }
 
   void restart() {
+    triggerHaptic(selection: true);
     _history.clear();
     _reset();
     notifyListeners();
