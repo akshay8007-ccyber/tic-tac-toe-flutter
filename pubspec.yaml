@@ -1,4 +1,4 @@
-name: tic_tac_toe_3marks
+name: tic_tac_toe
 description: "Tic Tac Toe with interactive select & move mechanics."
 publish_to: 'none'
 version: 1.0.0+1
