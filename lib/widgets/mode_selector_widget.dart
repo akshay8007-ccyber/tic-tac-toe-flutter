@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../game/game_controller.dart';
 import '../models/game_mode.dart';
+import '../models/player_profile.dart';
 
-class SettingsModalSheet extends StatelessWidget {
+class SettingsModalSheet extends StatefulWidget {
   final GameController controller;
 
   const SettingsModalSheet({super.key, required this.controller});
@@ -20,8 +21,33 @@ class SettingsModalSheet extends StatelessWidget {
   }
 
   @override
+  State<SettingsModalSheet> createState() => _SettingsModalSheetState();
+}
+
+class _SettingsModalSheetState extends State<SettingsModalSheet> {
+  late TextEditingController _nameXController;
+  late TextEditingController _nameOController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameXController =
+        TextEditingController(text: widget.controller.playerXProfile.name);
+    _nameOController =
+        TextEditingController(text: widget.controller.playerOProfile.name);
+  }
+
+  @override
+  void dispose() {
+    _nameXController.dispose();
+    _nameOController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final controller = widget.controller;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -66,6 +92,57 @@ class SettingsModalSheet extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
+            // Player Profiles Editor
+            Text(
+              'Player Customization',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: _buildProfileCard(
+                    context: context,
+                    label: 'Player X',
+                    controller: _nameXController,
+                    avatar: controller.playerXProfile.avatarEmoji,
+                    onAvatarSelected: (avatar) {
+                      controller.updatePlayerXProfile(
+                          _nameXController.text, avatar);
+                      setState(() {});
+                    },
+                    onNameChanged: (val) =>
+                        controller.updatePlayerXProfile(
+                            val, controller.playerXProfile.avatarEmoji),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildProfileCard(
+                    context: context,
+                    label: 'Player O',
+                    controller: _nameOController,
+                    avatar: controller.playerOProfile.avatarEmoji,
+                    onAvatarSelected: (avatar) {
+                      controller.updatePlayerOProfile(
+                          _nameOController.text, avatar);
+                      setState(() {});
+                    },
+                    onNameChanged: (val) =>
+                        controller.updatePlayerOProfile(
+                            val, controller.playerOProfile.avatarEmoji),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
             // Game Mode Selector
             Text(
               'Game Mode',
@@ -87,6 +164,7 @@ class SettingsModalSheet extends StatelessWidget {
               selected: {controller.gameMode},
               onSelectionChanged: (selected) {
                 controller.setGameMode(selected.first);
+                setState(() {});
               },
             ),
 
@@ -112,11 +190,27 @@ class SettingsModalSheet extends StatelessWidget {
                 selected: {controller.aiDifficulty},
                 onSelectionChanged: (selected) {
                   controller.setAiDifficulty(selected.first);
+                  setState(() {});
                 },
               ),
             ],
 
             const SizedBox(height: 20),
+
+            // Blitz Speed Mode
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Blitz Speed Mode (5s Timer)'),
+              subtitle: const Text('Fast-paced gameplay with a 5-second turn timer'),
+              value: controller.isBlitzModeEnabled,
+              onChanged: (_) {
+                controller.toggleBlitzMode();
+                setState(() {});
+              },
+              secondary: const Icon(Icons.timer_rounded, color: Colors.amber),
+            ),
+
+            const SizedBox(height: 16),
             Text(
               'Symbol Style & Theme',
               style: TextStyle(
@@ -144,6 +238,7 @@ class SettingsModalSheet extends StatelessWidget {
                   onSelected: (selected) {
                     if (selected) {
                       controller.setSymbolTheme(theme);
+                      setState(() {});
                     }
                   },
                 );
@@ -167,7 +262,10 @@ class SettingsModalSheet extends StatelessWidget {
               title: const Text('Haptic Vibration'),
               subtitle: const Text('Vibrate on taps, selections & victories'),
               value: controller.isHapticFeedbackEnabled,
-              onChanged: (_) => controller.toggleHapticFeedback(),
+              onChanged: (_) {
+                controller.toggleHaptics();
+                setState(() {});
+              },
               secondary: const Icon(Icons.vibration_rounded),
             ),
 
@@ -177,7 +275,10 @@ class SettingsModalSheet extends StatelessWidget {
               title: const Text('Dark Mode'),
               subtitle: const Text('Toggle app color scheme'),
               value: controller.isDarkMode,
-              onChanged: (_) => controller.toggleDarkMode(),
+              onChanged: (_) {
+                controller.toggleDarkMode();
+                setState(() {});
+              },
               secondary: Icon(
                 controller.isDarkMode
                     ? Icons.dark_mode_rounded
@@ -224,10 +325,67 @@ class SettingsModalSheet extends StatelessWidget {
       ),
     );
   }
-}
 
-extension _GameControllerHapticExtension on GameController {
-  void toggleHapticFeedback() {
-    toggleHaptics();
+  Widget _buildProfileCard({
+    required BuildContext context,
+    required String label,
+    required TextEditingController controller,
+    required String avatar,
+    required ValueChanged<String> onAvatarSelected,
+    required ValueChanged<String> onNameChanged,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              PopupMenuButton<String>(
+                initialValue: avatar,
+                onSelected: onAvatarSelected,
+                itemBuilder: (context) => PlayerProfile.availableAvatars
+                    .map((av) => PopupMenuItem(
+                          value: av,
+                          child: Text(av, style: const TextStyle(fontSize: 22)),
+                        ))
+                    .toList(),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(avatar, style: const TextStyle(fontSize: 20)),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  onChanged: onNameChanged,
+                  decoration: InputDecoration(
+                    labelText: label,
+                    isDense: true,
+                    border: InputBorder.none,
+                  ),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }

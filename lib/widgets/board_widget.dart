@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
 
+import '../game/game_controller.dart';
 import '../models/cell.dart';
 import '../models/game_mode.dart';
 import 'cell_widget.dart';
 import 'winning_line_painter.dart';
 
 /// Renders the 3x3 grid with selected tile highlights, symbol themes,
-/// and animated winning line overlays.
+/// AI Coach hints, and animated winning line overlays.
 class BoardWidget extends StatelessWidget {
   final List<CellData> cells;
   final List<int>? winningLine;
   final int? selectedCellIndex;
+  final HintMove? hintMove;
   final SymbolTheme symbolTheme;
   final ValueChanged<int> onCellTap;
 
@@ -19,6 +21,7 @@ class BoardWidget extends StatelessWidget {
     required this.cells,
     required this.winningLine,
     required this.selectedCellIndex,
+    this.hintMove,
     required this.symbolTheme,
     required this.onCellTap,
   });
@@ -63,11 +66,15 @@ class BoardWidget extends StatelessWidget {
               itemBuilder: (context, index) {
                 final isWinningCell = winningLine?.contains(index) ?? false;
                 final isSelected = selectedCellIndex == index;
+                final isHinted = hintMove != null &&
+                    (hintMove!.toIndex == index ||
+                        hintMove!.fromIndex == index);
 
                 return CellWidget(
                   cell: cells[index],
                   isWinningCell: isWinningCell,
                   isSelected: isSelected,
+                  isHinted: isHinted,
                   symbolTheme: symbolTheme,
                   onTap: () => onCellTap(index),
                 );

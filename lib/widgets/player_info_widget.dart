@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/game_mode.dart';
 import '../models/player.dart';
 
-/// Shows player badge, custom label, active turn status, and active mark count (e.g. 3/3).
+/// Shows player badge, custom label, active turn status, avatar emoji, and active mark count (e.g. 3/3).
 class PlayerInfoWidget extends StatelessWidget {
   final Player player;
   final int count;
@@ -12,6 +12,7 @@ class PlayerInfoWidget extends StatelessWidget {
   final bool isWinner;
   final SymbolTheme symbolTheme;
   final String? customTitle;
+  final String? avatarEmoji;
 
   const PlayerInfoWidget({
     super.key,
@@ -22,6 +23,7 @@ class PlayerInfoWidget extends StatelessWidget {
     required this.isWinner,
     required this.symbolTheme,
     this.customTitle,
+    this.avatarEmoji,
   });
 
   @override
@@ -29,13 +31,12 @@ class PlayerInfoWidget extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final isX = player == Player.x;
     final accent = isX ? symbolTheme.xColor : symbolTheme.oColor;
-    final symbol = isX ? symbolTheme.xSymbol : symbolTheme.oSymbol;
     final title = customTitle ?? 'Player ${player.label}';
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: isActive
             ? accent.withValues(alpha: 0.16)
@@ -61,26 +62,17 @@ class PlayerInfoWidget extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 30,
-                height: 30,
+                width: 32,
+                height: 32,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: accent,
+                  color: accent.withValues(alpha: 0.2),
                   shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: accent.withValues(alpha: 0.4),
-                      blurRadius: 6,
-                    ),
-                  ],
+                  border: Border.all(color: accent, width: 1.5),
                 ),
                 child: Text(
-                  symbolTheme.isEmoji ? symbol : player.label,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: symbolTheme.isEmoji ? 16 : 15,
-                  ),
+                  avatarEmoji ?? (isX ? '⚡' : '🎯'),
+                  style: const TextStyle(fontSize: 16),
                 ),
               ),
               const SizedBox(width: 8),
@@ -91,7 +83,7 @@ class PlayerInfoWidget extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 13,
                     color: colorScheme.onSurface,
                   ),
                 ),

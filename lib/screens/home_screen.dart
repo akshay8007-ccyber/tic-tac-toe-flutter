@@ -3,12 +3,14 @@ import 'package:flutter/services.dart';
 
 import '../game/game_controller.dart';
 import '../models/game_mode.dart';
+import '../widgets/achievements_dialog.dart';
 import '../widgets/ambient_background.dart';
+import '../widgets/history_dialog.dart';
 import '../widgets/how_to_play_dialog.dart';
 import '../widgets/mode_selector_widget.dart';
 
 /// Modern Dashboard Home Screen for mode selection, theme switching,
-/// interactive guides, and game launching.
+/// achievements, match history, and game launching.
 class HomeScreen extends StatelessWidget {
   final GameController controller;
 
@@ -27,6 +29,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       body: AmbientParticleBackground(
+        symbolTheme: controller.selectedSymbolTheme,
         child: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -195,7 +198,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
                 Text(
                   'SELECT GAME MODE',
@@ -249,9 +252,37 @@ class HomeScreen extends StatelessWidget {
                   onTap: () => _launchGame(context, GameMode.pvp),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
-                // Quick Navigation Grid
+                // Quick Feature Hub Grid (Achievements & History)
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildActionButton(
+                        context: context,
+                        icon: Icons.emoji_events_rounded,
+                        iconColor: Colors.amber,
+                        label: 'Achievements',
+                        onTap: () => AchievementsModalSheet.show(
+                            context, controller.achievements),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildActionButton(
+                        context: context,
+                        icon: Icons.history_rounded,
+                        iconColor: colorScheme.primary,
+                        label: 'Replays',
+                        onTap: () => MatchHistoryModalSheet.show(
+                            context, controller.matchHistory),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+
                 Row(
                   children: [
                     Expanded(
@@ -345,9 +376,7 @@ class HomeScreen extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark
-            ? colorScheme.surfaceContainerHigh
-            : Colors.white,
+        color: isDark ? colorScheme.surfaceContainerHigh : Colors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: accentColor.withValues(alpha: 0.3),
@@ -460,6 +489,7 @@ class HomeScreen extends StatelessWidget {
   Widget _buildActionButton({
     required BuildContext context,
     required IconData icon,
+    Color? iconColor,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -468,13 +498,11 @@ class HomeScreen extends StatelessWidget {
 
     return OutlinedButton.icon(
       onPressed: onTap,
-      icon: Icon(icon, size: 20),
+      icon: Icon(icon, size: 20, color: iconColor),
       label: Text(label),
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        backgroundColor: isDark
-            ? colorScheme.surfaceContainer
-            : Colors.white,
+        backgroundColor: isDark ? colorScheme.surfaceContainer : Colors.white,
         side: BorderSide(
           color: colorScheme.outlineVariant.withValues(alpha: 0.5),
         ),

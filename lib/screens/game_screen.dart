@@ -13,7 +13,8 @@ import '../widgets/player_info_widget.dart';
 import '../widgets/score_board_widget.dart';
 import '../widgets/winner_banner.dart';
 
-/// Main screen featuring interactive "Select & Move" mechanics for 3-mark Tic Tac Toe.
+/// Main screen featuring interactive "Select & Move" mechanics for 3-mark Tic Tac Toe,
+/// Blitz Mode turn timer, and AI Coach Hints.
 class GameScreen extends StatelessWidget {
   final GameController controller;
 
@@ -39,19 +40,17 @@ class GameScreen extends StatelessWidget {
         ),
         centerTitle: true,
         actions: [
+          // AI Coach Hint Button
+          if (!isGameOver)
+            IconButton(
+              tooltip: 'AI Coach Hint',
+              icon: const Icon(Icons.lightbulb_rounded, color: Colors.amber),
+              onPressed: controller.requestHint,
+            ),
           IconButton(
             tooltip: 'How to Play',
             icon: const Icon(Icons.help_outline_rounded),
             onPressed: () => HowToPlayModal.show(context),
-          ),
-          IconButton(
-            tooltip: 'Toggle Theme',
-            icon: Icon(
-              controller.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-            ),
-            onPressed: controller.toggleDarkMode,
           ),
           IconButton(
             tooltip: 'Game Settings',
@@ -62,6 +61,7 @@ class GameScreen extends StatelessWidget {
         ],
       ),
       body: AmbientParticleBackground(
+        symbolTheme: controller.selectedSymbolTheme,
         child: Stack(
           children: [
             SafeArea(
@@ -81,7 +81,13 @@ class GameScreen extends StatelessWidget {
                         children: [
                           // Dynamic Rule Banner
                           _buildRuleHelpChip(context, colorScheme),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
+
+                          // Blitz Speed Mode Countdown Bar
+                          if (controller.isBlitzModeEnabled && !isGameOver)
+                            _buildBlitzCountdownBar(context, colorScheme),
+
+                          const SizedBox(height: 10),
 
                           // Scoreboard
                           ScoreBoardWidget(controller: controller),
@@ -107,6 +113,7 @@ class GameScreen extends StatelessWidget {
                                 cells: controller.cells,
                                 winningLine: controller.winningLine,
                                 selectedCellIndex: controller.selectedCellIndex,
+                                hintMove: controller.currentHint,
                                 symbolTheme: controller.selectedSymbolTheme,
                                 onCellTap: controller.onCellTap,
                               ),
@@ -127,7 +134,8 @@ class GameScreen extends StatelessWidget {
                                       controller.currentPlayer == Player.x,
                                   isWinner: controller.winner == Player.x,
                                   symbolTheme: controller.selectedSymbolTheme,
-                                  customTitle: 'Player X',
+                                  customTitle: controller.playerXProfile.name,
+                                  avatarEmoji: controller.playerXProfile.avatarEmoji,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -142,7 +150,10 @@ class GameScreen extends StatelessWidget {
                                   symbolTheme: controller.selectedSymbolTheme,
                                   customTitle: controller.gameMode == GameMode.vsAi
                                       ? 'AI Bot (${controller.aiDifficulty.label})'
-                                      : 'Player O',
+                                      : controller.playerOProfile.name,
+                                  avatarEmoji: controller.gameMode == GameMode.vsAi
+                                      ? '🤖'
+                                      : controller.playerOProfile.avatarEmoji,
                                 ),
                               ),
                             ],
@@ -150,7 +161,7 @@ class GameScreen extends StatelessWidget {
 
                           const SizedBox(height: 20),
 
-                          // Action Buttons: Undo & Restart
+                          // Action Buttons: Undo, Hint & Restart
                           Row(
                             children: [
                               Expanded(
@@ -170,13 +181,32 @@ class GameScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                flex: 2,
+                                child: OutlinedButton.icon(
+                                  onPressed: !isGameOver
+                                      ? controller.requestHint
+                                      : null,
+                                  icon: const Icon(Icons.lightbulb_rounded,
+                                      color: Colors.amber),
+                                  label: const Text('Hint'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
                               Expanded(
                                 flex: 3,
                                 child: FilledButton.icon(
                                   onPressed: controller.restart,
                                   icon: const Icon(Icons.refresh_rounded),
-                                  label: const Text('Restart Game'),
+                                  label: const Text('Restart'),
                                   style: FilledButton.styleFrom(
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14),
@@ -184,7 +214,7 @@ class GameScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(18),
                                     ),
                                     textStyle: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
@@ -205,6 +235,59 @@ class GameScreen extends StatelessWidget {
             VictoryConfettiWidget(isPlaying: controller.winner != null),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBlitzCountdownBar(
+      BuildContext context, ColorScheme colorScheme) {
+    final remaining = controller.blitzTimeRemaining;
+    final double progress = remaining / GameController.blitzTimeLimit;
+    final isUrgent = remaining <= 2;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isUrgent
+            ? Colors.red.withValues(alpha: 0.15)
+            : Colors.amber.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isUrgent ? Colors.red : Colors.amber,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.timer_rounded,
+            color: isUrgent ? Colors.red : Colors.amber,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: isUrgent
+                    ? Colors.red.withValues(alpha: 0.2)
+                    : Colors.amber.withValues(alpha: 0.2),
+                color: isUrgent ? Colors.red : Colors.amber,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            '${remaining}s',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isUrgent ? Colors.red : Colors.amber,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -253,7 +336,8 @@ class GameScreen extends StatelessWidget {
         decoration: BoxDecoration(
           color: colorScheme.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
+          border:
+              Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -288,7 +372,7 @@ class GameScreen extends StatelessWidget {
 
     final playerLabel = controller.gameMode == GameMode.vsAi && !isX
         ? 'AI Bot'
-        : 'Player ${player.label}';
+        : (isX ? controller.playerXProfile.name : controller.playerOProfile.name);
 
     final playerMarks = controller.marksCountFor(player);
 

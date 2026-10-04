@@ -5,11 +5,12 @@ import '../models/game_mode.dart';
 import '../models/player.dart';
 
 /// Represents a single board cell with spring animation, haptics, selection badge,
-/// and symbol theme styling.
+/// hint highlight, and symbol theme styling.
 class CellWidget extends StatelessWidget {
   final CellData cell;
   final bool isWinningCell;
   final bool isSelected;
+  final bool isHinted;
   final SymbolTheme symbolTheme;
   final VoidCallback onTap;
 
@@ -18,6 +19,7 @@ class CellWidget extends StatelessWidget {
     required this.cell,
     required this.isWinningCell,
     required this.isSelected,
+    this.isHinted = false,
     required this.symbolTheme,
     required this.onTap,
   });
@@ -33,16 +35,18 @@ class CellWidget extends StatelessWidget {
         ? colorScheme.tertiaryContainer
         : (isSelected
             ? markColor.withValues(alpha: 0.2)
-            : (isDark
-                ? colorScheme.surfaceContainerHigh
-                : Colors.white));
+            : (isHinted
+                ? Colors.amber.withValues(alpha: 0.2)
+                : (isDark
+                    ? colorScheme.surfaceContainerHigh
+                    : Colors.white)));
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
-        transform: isSelected
+        transform: isSelected || isHinted
             ? Matrix4.diagonal3Values(1.05, 1.05, 1.0)
             : Matrix4.identity(),
         transformAlignment: Alignment.center,
@@ -54,8 +58,10 @@ class CellWidget extends StatelessWidget {
                 ? colorScheme.tertiary
                 : (isSelected
                     ? markColor
-                    : colorScheme.outlineVariant.withValues(alpha: 0.4)),
-            width: isWinningCell ? 3.2 : (isSelected ? 3.0 : 1.2),
+                    : (isHinted
+                        ? Colors.amber
+                        : colorScheme.outlineVariant.withValues(alpha: 0.4))),
+            width: isWinningCell ? 3.2 : (isSelected || isHinted ? 3.0 : 1.2),
           ),
           boxShadow: [
             if (isWinningCell)
@@ -69,6 +75,12 @@ class CellWidget extends StatelessWidget {
                 color: markColor.withValues(alpha: 0.35),
                 blurRadius: 14,
                 spreadRadius: 2,
+              )
+            else if (isHinted)
+              BoxShadow(
+                color: Colors.amber.withValues(alpha: 0.5),
+                blurRadius: 16,
+                spreadRadius: 3,
               )
             else
               BoxShadow(
@@ -93,7 +105,13 @@ class CellWidget extends StatelessWidget {
                   child: FadeTransition(opacity: animation, child: child),
                 ),
                 child: cell.isEmpty
-                    ? const SizedBox.shrink(key: ValueKey('empty'))
+                    ? (isHinted
+                        ? const Icon(
+                            Icons.lightbulb_rounded,
+                            color: Colors.amber,
+                            size: 32,
+                          )
+                        : const SizedBox.shrink(key: ValueKey('empty')))
                     : Text(
                         isX ? symbolTheme.xSymbol : symbolTheme.oSymbol,
                         key: ValueKey('mark_${cell.moveId}'),
@@ -142,6 +160,37 @@ class CellWidget extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // AI Coach Hint Badge
+            if (isHinted)
+              Positioned(
+                top: 6,
+                left: 6,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.amber,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome_rounded,
+                          size: 10, color: Colors.white),
+                      SizedBox(width: 2),
+                      Text(
+                        'Best Move',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
