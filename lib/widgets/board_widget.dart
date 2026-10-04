@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../game/game_controller.dart';
+import '../bloc/game_state.dart';
 import '../models/cell.dart';
 import '../models/game_mode.dart';
 import 'cell_widget.dart';

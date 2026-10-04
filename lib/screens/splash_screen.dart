@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../game/game_controller.dart';
+import '../bloc/game_bloc.dart';
+import '../bloc/game_event.dart';
+import '../bloc/game_state.dart';
 import '../models/game_mode.dart';
 import '../widgets/ambient_background.dart';
 
 /// Modern animated entrance splash screen with visual effects, neon glow board,
 /// and smooth start transitions.
 class SplashScreen extends StatefulWidget {
-  final GameController controller;
-
-  const SplashScreen({super.key, required this.controller});
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -67,10 +68,10 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  void _onStartPressed([GameMode? mode]) {
+  void _onStartPressed(BuildContext context, [GameMode? mode]) {
     HapticFeedback.mediumImpact();
     if (mode != null) {
-      widget.controller.setGameMode(mode);
+      context.read<GameBloc>().add(GameModeChangedEvent(mode));
     }
     Navigator.of(context).pushReplacementNamed('/home');
   }
@@ -79,248 +80,252 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Scaffold(
-      body: AmbientParticleBackground(
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(),
+    return BlocBuilder<GameBloc, GameState>(
+      builder: (context, state) {
+        return Scaffold(
+          body: AmbientParticleBackground(
+            symbolTheme: state.selectedSymbolTheme,
+            child: SafeArea(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Spacer(),
 
-                // Animated Neon Tic Tac Toe Board Logo
-                AnimatedBuilder(
-                  animation: _animController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _logoScale.value,
-                      child: Opacity(
-                        opacity: _logoFade.value,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            // Glowing Outer Canvas
-                            Container(
-                              width: 190,
-                              height: 190,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: colorScheme.primary
-                                    .withValues(alpha: 0.12),
-                                boxShadow: [
-                                  BoxShadow(
+                    // Animated Neon Tic Tac Toe Board Logo
+                    AnimatedBuilder(
+                      animation: _animController,
+                      builder: (context, child) {
+                        return Transform.scale(
+                          scale: _logoScale.value,
+                          child: Opacity(
+                            opacity: _logoFade.value,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                Container(
+                                  width: 190,
+                                  height: 190,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
                                     color: colorScheme.primary
-                                        .withValues(alpha: 0.3),
-                                    blurRadius: 36,
-                                    spreadRadius: 8,
+                                        .withValues(alpha: 0.12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: colorScheme.primary
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 36,
+                                        spreadRadius: 8,
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
-
-                            // Grid Lines & Symbols
-                            SizedBox(
-                              width: 170,
-                              height: 170,
-                              child: CustomPaint(
-                                painter: _SplashGridPainter(
-                                  progress: _gridDraw.value,
-                                  primaryColor: colorScheme.primary,
-                                  secondaryColor: colorScheme.tertiary,
                                 ),
-                                child: Stack(
-                                  children: [
-                                    _buildFloatingMark(
-                                      '✕',
-                                      colorScheme.primary,
-                                      const Alignment(-0.6, -0.6),
+                                SizedBox(
+                                  width: 170,
+                                  height: 170,
+                                  child: CustomPaint(
+                                    painter: _SplashGridPainter(
+                                      progress: _gridDraw.value,
+                                      primaryColor: colorScheme.primary,
+                                      secondaryColor: colorScheme.tertiary,
                                     ),
-                                    _buildFloatingMark(
-                                      '◯',
-                                      colorScheme.tertiary,
-                                      const Alignment(0.6, -0.6),
+                                    child: Stack(
+                                      children: [
+                                        _buildFloatingMark(
+                                          '✕',
+                                          colorScheme.primary,
+                                          const Alignment(-0.6, -0.6),
+                                        ),
+                                        _buildFloatingMark(
+                                          '◯',
+                                          colorScheme.tertiary,
+                                          const Alignment(0.6, -0.6),
+                                        ),
+                                        _buildFloatingMark(
+                                          '◯',
+                                          colorScheme.tertiary,
+                                          const Alignment(-0.6, 0.6),
+                                        ),
+                                        _buildFloatingMark(
+                                          '✕',
+                                          colorScheme.primary,
+                                          const Alignment(0.6, 0.6),
+                                        ),
+                                      ],
                                     ),
-                                    _buildFloatingMark(
-                                      '◯',
-                                      colorScheme.tertiary,
-                                      const Alignment(-0.6, 0.6),
-                                    ),
-                                    _buildFloatingMark(
-                                      '✕',
-                                      colorScheme.primary,
-                                      const Alignment(0.6, 0.6),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 40),
-
-                // Title & Subtitle Fade-In
-                FadeTransition(
-                  opacity: _textFade,
-                  child: Column(
-                    children: [
-                      ShaderMask(
-                        shaderCallback: (bounds) => LinearGradient(
-                          colors: [
-                            colorScheme.primary,
-                            colorScheme.tertiary,
-                            colorScheme.secondary,
-                          ],
-                        ).createShader(bounds),
-                        child: const Text(
-                          'TIC TAC TOE',
-                          style: TextStyle(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 2.5,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: colorScheme.secondaryContainer
-                              .withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: colorScheme.outlineVariant
-                                .withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.auto_awesome_rounded,
-                              size: 16,
-                              color: colorScheme.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Interactive 3-Mark Mechanics',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Animated Play Button
-                ScaleTransition(
-                  scale: _buttonScale,
-                  child: Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(20),
-                          gradient: LinearGradient(
-                            colors: [
-                              colorScheme.primary,
-                              colorScheme.tertiary,
-                            ],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.primary.withValues(alpha: 0.4),
-                              blurRadius: 18,
-                              offset: const Offset(0, 8),
-                            ),
-                          ],
-                        ),
-                        child: ElevatedButton.icon(
-                          onPressed: () => _onStartPressed(),
-                          icon: const Icon(Icons.play_arrow_rounded,
-                              size: 28, color: Colors.white),
-                          label: const Text(
-                            'GET STARTED',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                              color: Colors.white,
+                              ],
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.transparent,
-                            shadowColor: Colors.transparent,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                        );
+                      },
+                    ),
 
-                      // Quick Mode Row
-                      Row(
+                    const SizedBox(height: 40),
+
+                    // Title & Subtitle Fade-In
+                    FadeTransition(
+                      opacity: _textFade,
+                      child: Column(
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () =>
-                                  _onStartPressed(GameMode.vsAi),
-                              icon: const Icon(Icons.smart_toy_rounded,
-                                  size: 18),
-                              label: const Text('vs AI Bot'),
-                              style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                          ShaderMask(
+                            shaderCallback: (bounds) => LinearGradient(
+                              colors: [
+                                colorScheme.primary,
+                                colorScheme.tertiary,
+                                colorScheme.secondary,
+                              ],
+                            ).createShader(bounds),
+                            child: const Text(
+                              'TIC TAC TOE',
+                              style: TextStyle(
+                                fontSize: 34,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 2.5,
+                                color: Colors.white,
                               ),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () =>
-                                  _onStartPressed(GameMode.pvp),
-                              icon:
-                                  const Icon(Icons.people_alt_rounded, size: 18),
-                              label: const Text('2 Players'),
-                              style: OutlinedButton.styleFrom(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: colorScheme.secondaryContainer
+                                  .withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: colorScheme.outlineVariant
+                                    .withValues(alpha: 0.3),
                               ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.auto_awesome_rounded,
+                                  size: 16,
+                                  color: colorScheme.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Interactive 3-Mark Mechanics',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: colorScheme.onSecondaryContainer,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const Spacer(),
+
+                    // Animated Play Button
+                    ScaleTransition(
+                      scale: _buttonScale,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(20),
+                              gradient: LinearGradient(
+                                colors: [
+                                  colorScheme.primary,
+                                  colorScheme.tertiary,
+                                ],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colorScheme.primary
+                                      .withValues(alpha: 0.4),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 8),
+                                ),
+                              ],
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: () => _onStartPressed(context),
+                              icon: const Icon(Icons.play_arrow_rounded,
+                                  size: 28, color: Colors.white),
+                              label: const Text(
+                                'GET STARTED',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.2,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Quick Mode Row
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _onStartPressed(context, GameMode.vsAi),
+                                  icon: const Icon(Icons.smart_toy_rounded,
+                                      size: 18),
+                                  label: const Text('vs AI Bot'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () =>
+                                      _onStartPressed(context, GameMode.pvp),
+                                  icon: const Icon(Icons.people_alt_rounded,
+                                      size: 18),
+                                  label: const Text('2 Players'),
+                                  style: OutlinedButton.styleFrom(
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                 ),
-                const SizedBox(height: 16),
-              ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -366,29 +371,14 @@ class _SplashGridPainter extends CustomPainter {
     final stepX = size.width / 3;
     final stepY = size.height / 3;
 
-    // Vertical Lines
     canvas.drawLine(
-      Offset(stepX, 0),
-      Offset(stepX, size.height * progress),
-      paint,
-    );
+        Offset(stepX, 0), Offset(stepX, size.height * progress), paint);
+    canvas.drawLine(Offset(stepX * 2, 0),
+        Offset(stepX * 2, size.height * progress), paint);
     canvas.drawLine(
-      Offset(stepX * 2, 0),
-      Offset(stepX * 2, size.height * progress),
-      paint,
-    );
-
-    // Horizontal Lines
-    canvas.drawLine(
-      Offset(0, stepY),
-      Offset(size.width * progress, stepY),
-      paint,
-    );
-    canvas.drawLine(
-      Offset(0, stepY * 2),
-      Offset(size.width * progress, stepY * 2),
-      paint,
-    );
+        Offset(0, stepY), Offset(size.width * progress, stepY), paint);
+    canvas.drawLine(Offset(0, stepY * 2),
+        Offset(size.width * progress, stepY * 2), paint);
   }
 
   @override
