@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../data/models/game_mode_model.dart';
 import '../../data/models/player_model.dart';
+import '../../domain/ai/ai_bot_engine.dart';
 
 @immutable
 abstract class GameEvent {
@@ -70,4 +71,9 @@ class PlayerProfileUpdatedEvent extends GameEvent {
 
 class BlitzTimerTickedEvent extends GameEvent {
   const BlitzTimerTickedEvent();
+}
+
+class AiMoveCalculatedEvent extends GameEvent {
+  final AiMoveChoice moveChoice;
+  const AiMoveCalculatedEvent(this.moveChoice);
 }

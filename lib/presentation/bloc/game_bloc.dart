@@ -30,6 +30,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
     on<ScoresResetEvent>(_onScoresReset);
     on<PlayerProfileUpdatedEvent>(_onPlayerProfileUpdated);
     on<BlitzTimerTickedEvent>(_onBlitzTimerTicked);
+    on<AiMoveCalculatedEvent>(_onAiMoveCalculated);
   }
 
   void _triggerHaptic({bool heavy = false, bool selection = false}) {
@@ -103,6 +104,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       moveCounter: moveCounter,
       currentMatchMoves: newMoves,
       clearCurrentHint: true,
+      isAiThinking: false,
     );
 
     _checkGameResultAndSwitchTurn(nextState, emit);
@@ -138,6 +140,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       currentMatchMoves: newMoves,
       clearSelectedCell: true,
       clearCurrentHint: true,
+      isAiThinking: false,
     );
 
     _checkGameResultAndSwitchTurn(nextState, emit);
@@ -187,6 +190,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         totalGamesPlayed: totalGames,
         matchHistory: newMatchHistory,
         achievements: newAchievements,
+        isAiThinking: false,
       ));
     } else {
       final nextPlayer = currentState.currentPlayer.opponent;
@@ -199,19 +203,16 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       _resetBlitzTimer();
 
       if (nextState.gameMode == GameMode.vsAi && nextPlayer == Player.o) {
-        _triggerAiTurn(nextState, emit);
+        _scheduleAiTurn(nextState, emit);
       }
     }
   }
 
-  void _triggerAiTurn(GameState currentState, Emitter<GameState> emit) {
+  void _scheduleAiTurn(GameState currentState, Emitter<GameState> emit) {
     emit(currentState.copyWith(isAiThinking: true));
 
     Future.delayed(const Duration(milliseconds: 380), () {
-      if (state.isGameOver) {
-        add(const GameRestartedEvent());
-        return;
-      }
+      if (state.isGameOver || state.currentPlayer != Player.o) return;
 
       final board = state.cells.map((c) => c.player).toList();
       final moveChoice = AiBotEngine.findBestMove(
@@ -222,14 +223,23 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       );
 
       if (moveChoice != null) {
-        final snapState = _saveSnapshot(state.copyWith(isAiThinking: false));
-        if (moveChoice.fromIndex != null) {
-          _executeMove(moveChoice.fromIndex!, moveChoice.toIndex, snapState, emit);
-        } else {
-          _executePlacement(moveChoice.toIndex, snapState, emit);
-        }
+        add(AiMoveCalculatedEvent(moveChoice));
       }
     });
+  }
+
+  void _onAiMoveCalculated(AiMoveCalculatedEvent event, Emitter<GameState> emit) {
+    if (state.isGameOver || state.currentPlayer != Player.o) {
+      emit(state.copyWith(isAiThinking: false));
+      return;
+    }
+
+    final snapState = _saveSnapshot(state);
+    if (event.moveChoice.fromIndex != null) {
+      _executeMove(event.moveChoice.fromIndex!, event.moveChoice.toIndex, snapState, emit);
+    } else {
+      _executePlacement(event.moveChoice.toIndex, snapState, emit);
+    }
   }
 
   List<Achievement> _checkAchievements(GameState currentState, Player? winner, {required int moveCounter, required int xStreak, required int oStreak}) {
@@ -303,6 +313,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
         history: newHistory,
         currentMatchMoves: newMoves,
         clearCurrentHint: true,
+        isAiThinking: false,
       ));
       _resetBlitzTimer();
     }
@@ -440,7 +451,7 @@ class GameBloc extends Bloc<GameEvent, GameState> {
       _resetBlitzTimer();
 
       if (nextState.gameMode == GameMode.vsAi && nextPlayer == Player.o) {
-        _triggerAiTurn(nextState, emit);
+        _scheduleAiTurn(nextState, emit);
       }
     }
   }
